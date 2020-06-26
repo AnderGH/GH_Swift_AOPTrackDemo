@@ -37,63 +37,62 @@ class UIViewControllerTrack: NSObject {
     
     // MARK: 属性
     
-    private var recordParams: Dictionary<String, Dictionary<String, Any?>> = [:]
+    private var recordParams: [String : [String : Any?]] = [:]
     
     // MARK: 拦截的方法
     
-    open func trackViewDidLoad(ofController controller: UIViewController) {
-        let objectClass: AnyClass? = object_getClass(controller)
-        if objectClass == nil {
+    func trackViewDidLoad(ofController controller: UIViewController) {
+        
+        guard let objectClass: AnyClass = object_getClass(controller) else {
             return
         }
-        let controllerName: String = NSStringFromClass(objectClass!)
+        
+        let controllerName: String = NSStringFromClass(objectClass)
         let key: String = controllerName + String(self.hashValue)
         
-        var infoDic: Dictionary<String, Any?> = [:]
+        var infoDic: [String : Any?] = [:]
         infoDic["viewDidLoadTime"] = TrackUtils.stringFromDate(Date.init(), with: "yyyy-MM-dd HH:mm:ss.SSS")
         
         self.recordParams[key] = infoDic
     }
     
-    open func trackViewWillAppear(ofController controller: UIViewController) {
-        let objectClass: AnyClass? = object_getClass(controller)
-        if objectClass == nil {
+    func trackViewWillAppear(ofController controller: UIViewController) {
+        
+        guard let objectClass: AnyClass = object_getClass(controller) else {
             return
         }
-        let controllerName: String = NSStringFromClass(objectClass!)
+        
+        let controllerName: String = NSStringFromClass(objectClass)
         let key: String = controllerName + String(self.hashValue)
         
-        var infoDic: Dictionary<String, Any?> = self.recordParams[key] ?? [:]
-        if infoDic.count == 0 {
+        guard var infoDic: [String : Any?] = self.recordParams[key] else {
             return
         }
         infoDic["viewWillAppearTime"] = TrackUtils.stringFromDate(Date.init(), with: "yyyy-MM-dd HH:mm:ss.SSS")
         self.recordParams[key] = infoDic
     }
     
-    open func trackViewDidAppear(ofController controller: UIViewController) {
-        let objectClass: AnyClass? = object_getClass(controller)
-        if objectClass == nil {
+    func trackViewDidAppear(ofController controller: UIViewController) {
+        
+        guard let objectClass: AnyClass = object_getClass(controller) else {
             return
         }
-        let controllerName: String = NSStringFromClass(objectClass!)
+        let controllerName: String = NSStringFromClass(objectClass)
         let key: String = controllerName + String(self.hashValue)
         
         // 获取缓存的数据
-        let infoDic: Dictionary<String, Any?> = self.recordParams[key] ?? [:]
-        if infoDic.count == 0 {
+        guard let infoDic: [String : Any?] = self.recordParams[key] else {
             return
         }
-        // count the duration time
-        let viewDidLoadTime: String? = infoDic["viewDidLoadTime"] as? String
-        if viewDidLoadTime == nil {
+        // 开始加载的时间字段
+        guard let timeString = infoDic["viewDidLoadTime"] else {
+            return
+        }
+        guard let viewDidLoadTime: String = timeString as? String else {
             return
         }
         let viewDidAppearTime: String = TrackUtils.stringFromDate(Date.init(), with: "yyyy-MM-dd HH:mm:ss.SSS")
-        let duration = TrackUtils.duration(From: viewDidLoadTime!, To: viewDidAppearTime)
-        if (duration > 10000) || (duration < 0) {
-            return
-        }
+        let duration = TrackUtils.duration(From: viewDidLoadTime, To: viewDidAppearTime)
         
         // 删除数据
         self.recordParams.removeValue(forKey: key)

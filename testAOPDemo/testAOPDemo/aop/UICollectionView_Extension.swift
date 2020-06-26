@@ -13,43 +13,41 @@ class GHUICollectionViewDelegateProxy: NSObject, UICollectionViewDelegate {
     weak var delegate: UICollectionViewDelegate?
     
     override func responds(to aSelector: Selector!) -> Bool {
-        var hasSelector: Bool = false
-        if self.delegate == nil {
-            return hasSelector
+        guard let delegate = self.delegate else {
+            return false
         }
-        hasSelector = self.delegate?.responds(to: aSelector) ?? true
-        return hasSelector
+        return delegate.responds(to: aSelector)
     }
     
     override func forwardingTarget(for aSelector: Selector!) -> Any? {
-        if self.delegate == nil {
+        guard let delegate = self.delegate else {
             return super.forwardingTarget(for: aSelector)
         }
-        if self.delegate?.responds(to: aSelector) == false {
+        if delegate.responds(to: aSelector) == false {
             return super.forwardingTarget(for: aSelector)
         }
-        return self.delegate
+        return delegate
     }
     
     // MARK: UICollectionViewDelegate
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         
-        if self.delegate == nil {
+        guard let delegate = self.delegate else {
             return
         }
-        if (self.delegate?.responds(to: #selector(collectionView(_:didSelectItemAt:)))) == false {
+        guard delegate.responds(to: #selector(collectionView(_:didSelectItemAt:))) else {
             return
         }
         
         UICollectionViewTrack.shared.trackCollectionView(collectionView, didSelectItemAt: indexPath)
         
-        self.delegate?.collectionView?(collectionView, didSelectItemAt: indexPath)
+        delegate.collectionView?(collectionView, didSelectItemAt: indexPath)
     }
 }
 
 private func swizzle(_ collectionView: UICollectionView.Type) {
-    let selectors: Array<Array<Selector>> = [
+    let selectors: [[Selector]] = [
         [
             #selector(setter: collectionView.delegate),
             #selector(collectionView.gh_setDelegate(_:))
@@ -58,19 +56,19 @@ private func swizzle(_ collectionView: UICollectionView.Type) {
     for item in selectors {
         let originalSelector: Selector = item[0]
         let swizzledSelector: Selector = item[1]
-
-        let originalMethod: Method? = class_getInstanceMethod(collectionView, originalSelector)
-        let swizzledMethod: Method? = class_getInstanceMethod(collectionView, swizzledSelector)
         
-        if originalMethod == nil {
+        guard let originalMethod: Method = class_getInstanceMethod(collectionView, originalSelector) else {
+            continue
+        }
+        guard let swizzledMethod: Method = class_getInstanceMethod(collectionView, swizzledSelector) else {
             continue
         }
         
-        let didAddMethod: Bool = class_addMethod(collectionView, originalSelector, method_getImplementation(swizzledMethod!), method_getTypeEncoding(swizzledMethod!))
+        let didAddMethod: Bool = class_addMethod(collectionView, originalSelector, method_getImplementation(swizzledMethod), method_getTypeEncoding(swizzledMethod))
         if didAddMethod {
-            class_replaceMethod(collectionView, swizzledSelector, method_getImplementation(originalMethod!), method_getTypeEncoding(originalMethod!))
+            class_replaceMethod(collectionView, swizzledSelector, method_getImplementation(originalMethod), method_getTypeEncoding(originalMethod))
         } else {
-            method_exchangeImplementations(originalMethod!, swizzledMethod!)
+            method_exchangeImplementations(originalMethod, swizzledMethod)
         }
     }
 }
@@ -92,7 +90,9 @@ extension UICollectionView {
     }()
     
     @objc open class func startAOP() {
-        guard self === UICollectionView.self else { return }
+        guard self === UICollectionView.self else {
+            return
+        }
         UICollectionView.dispatchOnceTime
     }
     

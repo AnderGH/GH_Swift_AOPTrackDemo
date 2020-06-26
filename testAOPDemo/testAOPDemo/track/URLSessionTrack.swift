@@ -35,6 +35,7 @@ class URLSessionTrack: NSObject {
     override init() {
         super.init()
         
+        // 初始化一个队列，在此队列中做对recordParams的操作
         self.queue = DispatchQueue.init(label: "com.urlsession.track")
     }
     
@@ -46,7 +47,7 @@ class URLSessionTrack: NSObject {
     // MARK: 拦截的方法
     
     open func startTrackSessionWith(Request request: URLRequest?, StartDate startDate: Date) -> Void {
-        self.queue.sync {
+        self.queue.async {
             if request == nil {
                 return
             }
@@ -72,7 +73,7 @@ class URLSessionTrack: NSObject {
     
     open func endTrackDataSessionWith(Indentifier identifier: String, EndDate endDate: Date, ResponseData data: Data?, Response response: URLResponse?, Error error: Error?) -> Void {
         
-        self.queue.sync {
+        self.queue.async {
             let infoDic: Dictionary<String, Any?> = self.recordParams[identifier] ?? [:]
             
             if infoDic.count == 0 {
@@ -96,7 +97,7 @@ class URLSessionTrack: NSObject {
     
     open func endTrackDownloadSessionWith(Indentifier identifier: String, EndDate endDate: Date, ResponseURL responseUrl: URL?, Response response: URLResponse?, Error error: Error?) -> Void {
         
-        self.queue.sync {
+        self.queue.async {
             let infoDic: Dictionary<String, Any?> = self.recordParams[identifier] ?? [:]
             
             if infoDic.count == 0 {
@@ -127,7 +128,7 @@ class URLSessionTrack: NSObject {
     
     open func endTrackUploadSessionWith(Indentifier identifier: String, EndDate endDate: Date, ResponseData data: Data?, Response response: URLResponse?, Error error: Error?) -> Void {
         
-        self.queue.sync {
+        self.queue.async {
             let infoDic: Dictionary<String, Any?> = self.recordParams[identifier] ?? [:]
             
             if infoDic.count == 0 {

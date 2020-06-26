@@ -16,44 +16,43 @@ class GHUITabBarControllerDelegateProxy: NSObject, UITabBarControllerDelegate {
         if aSelector == #selector(tabBarController(_:didSelect:)) {
             return true
         }
-        if self.delegate == nil {
+        guard let delegate = self.delegate else {
             return false
         }
-        if self.delegate?.responds(to: aSelector) == true {
+        if delegate.responds(to: aSelector) {
             return true
         }
         return false
     }
     
     override func forwardingTarget(for aSelector: Selector!) -> Any? {
-        if self.delegate == nil {
+        guard let delegate = self.delegate else {
             return super.forwardingTarget(for: aSelector)
         }
-        if self.delegate?.responds(to: aSelector) == false {
+        if delegate.responds(to: aSelector) == false {
             return super.forwardingTarget(for: aSelector)
         }
-        return self.delegate
+        return delegate
     }
     
     // MARK: UITabBarControllerDelegate
     
     func tabBarController(_ tabBarController: UITabBarController, didSelect viewController: UIViewController) {
         
-        // 此方法有可能存在不实现的情况，所以这里先track
+        // 此方法有可能存在不实现的情况，所以这里先拦截埋点
         UITabBarControllerTrack.shared.trackTabBarController(tabBarController, didSelect: viewController)
         
-        if self.delegate == nil {
+        guard let delegate = self.delegate else {
             return
         }
-        if (self.delegate?.responds(to: #selector(tabBarController(_:didSelect:)))) == false {
-            return
+        if delegate.responds(to: #selector(tabBarController(_:didSelect:))) {
+            delegate.tabBarController?(tabBarController, didSelect: viewController)
         }
-        self.delegate?.tabBarController?(tabBarController, didSelect: viewController)
     }
 }
 
 private func swizzle(_ tabBarController: UITabBarController.Type) {
-    let selectors: Array<Array<Selector>> = [
+    let selectors: [[Selector]] = [
         [
             #selector(setter: tabBarController.delegate),
             #selector(tabBarController.gh_setDelegate(_:))
@@ -70,19 +69,19 @@ private func swizzle(_ tabBarController: UITabBarController.Type) {
     for item in selectors {
         let originalSelector: Selector = item[0]
         let swizzledSelector: Selector = item[1]
-
-        let originalMethod: Method? = class_getInstanceMethod(tabBarController, originalSelector)
-        let swizzledMethod: Method? = class_getInstanceMethod(tabBarController, swizzledSelector)
         
-        if originalMethod == nil {
+        guard let originalMethod: Method = class_getInstanceMethod(tabBarController, originalSelector) else {
+            continue
+        }
+        guard let swizzledMethod: Method = class_getInstanceMethod(tabBarController, swizzledSelector) else {
             continue
         }
         
-        let didAddMethod: Bool = class_addMethod(tabBarController, originalSelector, method_getImplementation(swizzledMethod!), method_getTypeEncoding(swizzledMethod!))
+        let didAddMethod: Bool = class_addMethod(tabBarController, originalSelector, method_getImplementation(swizzledMethod), method_getTypeEncoding(swizzledMethod))
         if didAddMethod {
-            class_replaceMethod(tabBarController, swizzledSelector, method_getImplementation(originalMethod!), method_getTypeEncoding(originalMethod!))
+            class_replaceMethod(tabBarController, swizzledSelector, method_getImplementation(originalMethod), method_getTypeEncoding(originalMethod))
         } else {
-            method_exchangeImplementations(originalMethod!, swizzledMethod!)
+            method_exchangeImplementations(originalMethod, swizzledMethod)
         }
     }
 }
@@ -104,7 +103,9 @@ extension UITabBarController {
     }()
     
     @objc open override class func startAOP() {
-        guard self === UITabBarController.self else { return }
+        guard self === UITabBarController.self else {
+            return
+        }
         UITabBarController.dispatchOnceTime
     }
     
@@ -130,7 +131,7 @@ extension UITabBarController {
         
         self.delegate = self.ghUITabBarControllerDelegateProxy
         
-        self.gh_setViewControllers(viewControllers)
+        self.gh_setViewControllers(viewControllers, animated: animated)
     }
     
     @objc func gh_setDelegate(_ delegate: UITabBarControllerDelegate?) {

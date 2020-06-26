@@ -37,73 +37,54 @@ class UIAlertControllerTrack: NSObject {
     
     // MARK: 属性
     
-    private var recordParams: Dictionary<String, Dictionary<String, Any?>> = [:]
+    private var recordParams: [String : [String : Any?]] = [:]
     
     // MARK: 拦截的方法
     
-    open func trackAlertController(_ alertController: UIAlertController, title: String?) -> Void {
-        
-        if title == nil {
-            return
-        }
+    func trackAlertController(_ alertController: UIAlertController, title: String?) -> Void {
         
         let key: String = "UIAlertController" + String(alertController.hashValue)
         
-        var infoDic: Dictionary<String, Any?> = self.recordParams[key] ?? [:]
-        infoDic["title"] = title
+        var infoDic: [String : Any?] = self.recordParams[key] ?? [:]
+        infoDic["title"] = title ?? ""
 
         self.recordParams[key] = infoDic
     }
     
-    open func trackAlertController(_ alertController: UIAlertController, message: String?) -> Void {
-        
-        if message == nil {
-            return
-        }
+    func trackAlertController(_ alertController: UIAlertController, message: String?) -> Void {
         
         let key: String = "UIAlertController" + String(alertController.hashValue)
 
-        var infoDic: Dictionary<String, Any?> = self.recordParams[key] ?? [:]
-        infoDic["message"] = message
+        var infoDic: [String : Any?] = self.recordParams[key] ?? [:]
+        infoDic["message"] = message ?? ""
 
         self.recordParams[key] = infoDic
     }
     
-    open func trackAlertController(_ alertController: UIAlertController, action: UIAlertAction) -> Void {
+    func trackAlertController(_ alertController: UIAlertController, action: UIAlertAction) -> Void {
         
-        if action.title == nil {
-            return
-        }
-
         let key: String = "UIAlertController" + String(alertController.hashValue)
-
-        var infoDic: Dictionary<String, Any?> = self.recordParams[key] ?? [:]
-        if infoDic.count == 0 {
+        
+        guard var infoDic: [String : Any?] = self.recordParams[key] else {
             return
         }
-        var actions: Array<Dictionary<String, Any?>> = (infoDic["actions"] as? Array<Dictionary<String, Any?>>) ?? []
-        var actionState: Dictionary<String, Any?> = [:]
-        actionState["title"] = action.title!
+        var actions: [[String : Any?]] = (infoDic["actions"] as? [[String : Any?]]) ?? []
+        var actionState: [String : Any?] = [:]
+        actionState["title"] = action.title ?? ""
         actionState["state"] = false
         actions.append(actionState)
         infoDic["actions"] = actions
-
+        
         self.recordParams[key] = infoDic
     }
     
-    open func trackAlertControllerActionCall(_ action: UIAlertAction) -> Void {
-        
-        if action.title == nil {
-            return
-        }
+    func trackAlertControllerActionCall(_ action: UIAlertAction) -> Void {
         
         let key: String = "UIAlertController" + action.ghControllerId
-
-        let infoDic: Dictionary<String, Any?> = self.recordParams[key] ?? [:]
-        if infoDic.count == 0 {
+        
+        guard let infoDic: [String : Any?] = self.recordParams[key] else {
             return
         }
-        
         let title: String = (infoDic["title"] as? String) ?? ""
         let message: String = (infoDic["message"] as? String) ?? ""
         

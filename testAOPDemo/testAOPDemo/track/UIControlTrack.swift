@@ -37,19 +37,11 @@ class UIControlTrack: NSObject {
     
     // MARK: 属性
     
-    private var recordParams: Dictionary<String, Dictionary<String, Any?>> = [:]
+    private var recordParams: [String : [String : Any?]] = [:]
     
     // MARK: 拦截的方法
     
-    open func trackButtonAction(_ control: UIControl, action: Selector, target: Any?, event: UIEvent?) -> Void {
-        if target == nil {
-            return
-        }
-        
-        if object_getClass(target) == nil {
-            return
-        }
-        
+    func trackButtonAction(_ control: UIControl, action: Selector, target: Any, event: UIEvent) -> Void {
         TrackingDataAnalysisHelper.analysisUIControlTrackingData(ofControl: control, action: action, target: target, event: event)
     }
 }

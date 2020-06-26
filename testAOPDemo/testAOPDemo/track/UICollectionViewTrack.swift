@@ -37,11 +37,11 @@ class UICollectionViewTrack: NSObject {
     
     // MARK: 属性
     
-    private var recordParams: Dictionary<String, Dictionary<String, Any?>> = [:]
+    private var recordParams: [String : [String : Any?]] = [:]
     
     // MARK: 拦截的方法
     
-    open func trackCollectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) -> Void {
+    func trackCollectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) -> Void {
         TrackingDataAnalysisHelper.analysisUICollectionViewTrackingData(ofCollectionView: collectionView, didSelectItemAt: indexPath)
     }
 }

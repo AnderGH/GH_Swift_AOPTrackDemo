@@ -9,7 +9,7 @@
 import UIKit
 
 private func swizzleControllerFunctions(_ alertController: UIAlertController.Type) {
-    let selectors: Array<Array<Selector>> = [
+    let selectors: [[Selector]] = [
         [
             #selector(setter: alertController.title),
             #selector(alertController.gh_setTitle(_:))
@@ -26,19 +26,19 @@ private func swizzleControllerFunctions(_ alertController: UIAlertController.Typ
     for item in selectors {
         let originalSelector: Selector = item[0]
         let swizzledSelector: Selector = item[1]
-
-        let originalMethod: Method? = class_getInstanceMethod(alertController, originalSelector)
-        let swizzledMethod: Method? = class_getInstanceMethod(alertController, swizzledSelector)
         
-        if originalMethod == nil {
+        guard let originalMethod: Method = class_getInstanceMethod(alertController, originalSelector) else {
+            continue
+        }
+        guard let swizzledMethod: Method = class_getInstanceMethod(alertController, swizzledSelector) else {
             continue
         }
         
-        let didAddMethod: Bool = class_addMethod(alertController, originalSelector, method_getImplementation(swizzledMethod!), method_getTypeEncoding(swizzledMethod!))
+        let didAddMethod: Bool = class_addMethod(alertController, originalSelector, method_getImplementation(swizzledMethod), method_getTypeEncoding(swizzledMethod))
         if didAddMethod {
-            class_replaceMethod(alertController, swizzledSelector, method_getImplementation(originalMethod!), method_getTypeEncoding(originalMethod!))
+            class_replaceMethod(alertController, swizzledSelector, method_getImplementation(originalMethod), method_getTypeEncoding(originalMethod))
         } else {
-            method_exchangeImplementations(originalMethod!, swizzledMethod!)
+            method_exchangeImplementations(originalMethod, swizzledMethod)
         }
     }
 }
@@ -52,7 +52,9 @@ extension UIAlertController {
     }()
     
     @objc open override class func startAOP() {
-        guard self === UIAlertController.self else { return }
+        guard self === UIAlertController.self else {
+            return
+        }
         UIAlertController.dispatchOnceTime
     }
     
@@ -84,19 +86,19 @@ extension UIAlertController {
 private func swizzleAlertActionFunctions(_ alertAction: UIAlertAction.Type) {
     let originalSelector: Selector = #selector(UIAlertAction.init(title:style:handler:))
     let swizzledSelector: Selector = #selector(UIAlertAction.gh_init(title:style:handler:))
-
-    let originalMethod: Method? = class_getInstanceMethod(object_getClass(alertAction), originalSelector)
-    let swizzledMethod: Method? = class_getInstanceMethod(object_getClass(alertAction), swizzledSelector)
     
-    if originalMethod == nil {
+    guard let originalMethod: Method = class_getInstanceMethod(object_getClass(alertAction), originalSelector) else {
+        return
+    }
+    guard let swizzledMethod: Method = class_getInstanceMethod(object_getClass(alertAction), swizzledSelector) else {
         return
     }
     
-    let didAddMethod: Bool = class_addMethod(object_getClass(alertAction), originalSelector, method_getImplementation(swizzledMethod!), method_getTypeEncoding(swizzledMethod!))
+    let didAddMethod: Bool = class_addMethod(object_getClass(alertAction), originalSelector, method_getImplementation(swizzledMethod), method_getTypeEncoding(swizzledMethod))
     if didAddMethod {
-        class_replaceMethod(object_getClass(alertAction), swizzledSelector, method_getImplementation(originalMethod!), method_getTypeEncoding(originalMethod!))
+        class_replaceMethod(object_getClass(alertAction), swizzledSelector, method_getImplementation(originalMethod), method_getTypeEncoding(originalMethod))
     } else {
-        method_exchangeImplementations(originalMethod!, swizzledMethod!)
+        method_exchangeImplementations(originalMethod, swizzledMethod)
     }
 }
 
@@ -131,7 +133,9 @@ extension UIAlertAction {
     }()
     
     @objc open class func startAOP() {
-        guard self === UIAlertAction.self else { return }
+        guard self === UIAlertAction.self else {
+            return
+        }
         UIAlertAction.dispatchOnceTime
     }
     
@@ -139,15 +143,16 @@ extension UIAlertAction {
     
     @objc class func gh_init(title: String?, style: UIAlertAction.Style, handler: ((UIAlertAction) -> Void)? = nil) -> UIAlertAction {
         
-        self.ghAlertActionHander = GHUIAlertAction.init()
-        self.ghAlertActionHander!.hander = { (alertAction) in
+        let actionHander: GHUIAlertAction = GHUIAlertAction.init()
+        self.ghAlertActionHander = actionHander
+        actionHander.hander = { (alertAction) in
             
             UIAlertControllerTrack.shared.trackAlertControllerActionCall(alertAction)
             
-            if handler != nil {
-                handler!(alertAction)
+            if let handler = handler {
+                handler(alertAction)
             }
         }
-        return self.gh_init(title: title, style: style, handler: self.ghAlertActionHander!.hander)
+        return self.gh_init(title: title, style: style, handler: actionHander.hander)
     }
 }

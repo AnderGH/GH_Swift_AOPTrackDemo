@@ -37,11 +37,11 @@ class UITabBarControllerTrack: NSObject {
     
     // MARK: 属性
     
-    private var recordParams: Dictionary<String, Dictionary<String, Any?>> = [:]
+    private var recordParams: [String : [String : Any?]] = [:]
     
     // MARK: 拦截的方法
     
-    open func trackTabBarController(_ tabBarController: UITabBarController, didSelect viewController: UIViewController) -> Void {
+    func trackTabBarController(_ tabBarController: UITabBarController, didSelect viewController: UIViewController) -> Void {
         TrackingDataAnalysisHelper.analysisUITabBarControllerTrackingData(ofTabBarController: tabBarController, didSelect: viewController)
     }
 }

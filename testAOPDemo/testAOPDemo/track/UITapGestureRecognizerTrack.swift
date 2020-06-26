@@ -37,21 +37,11 @@ class UITapGestureRecognizerTrack: NSObject {
     
     // MARK: 属性
     
-    private var recordParams: Dictionary<String, Dictionary<String, Any?>> = [:]
+    private var recordParams: [String : [String : Any?]] = [:]
     
     // MARK: 拦截的方法
     
-    open func trackGRAction(_ gesture: UITapGestureRecognizer?, action: Selector, target: UIResponder?) -> Void {
-        if target == nil {
-            return
-        }
-        if object_getClass(target) == nil {
-            return
-        }
-        if gesture == nil {
-            return
-        }
-        
-        TrackingDataAnalysisHelper.analysisUITapGestureRecognizerTrackingData(ofGesture: gesture!, action: action, target: target!)
+    func trackGRAction(_ gesture: UITapGestureRecognizer, action: Selector, target: UIResponder) -> Void {
+        TrackingDataAnalysisHelper.analysisUITapGestureRecognizerTrackingData(ofGesture: gesture, action: action, target: target)
     }
 }

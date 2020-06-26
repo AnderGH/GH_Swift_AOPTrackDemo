@@ -20,23 +20,23 @@ class GHWKNavigationDelegateProxy: NSObject, WKNavigationDelegate {
         if aSelector == #selector(webView(_:didFail:withError:)) {
             return true
         }
-        if self.delegate == nil {
+        guard let delegate = self.delegate else {
             return false
         }
-        if self.delegate!.responds(to: aSelector) {
+        if delegate.responds(to: aSelector) {
             return true
         }
         return false
     }
     
     override func forwardingTarget(for aSelector: Selector!) -> Any? {
-        if self.delegate == nil {
+        guard let delegate = self.delegate else {
             return super.forwardingTarget(for: aSelector)
         }
-        if self.delegate?.responds(to: aSelector) == false {
+        if delegate.responds(to: aSelector) == false {
             return super.forwardingTarget(for: aSelector)
         }
-        return self.delegate
+        return delegate
     }
     
     // MARK: WKNavigationDelegate
@@ -45,26 +45,24 @@ class GHWKNavigationDelegateProxy: NSObject, WKNavigationDelegate {
         
         WKWebViewTrack.shared.endTrackWKWebView(webView, error: nil)
         
-        if self.delegate == nil {
+        guard let delegate = self.delegate else {
             return
         }
-        if (self.delegate?.responds(to: #selector(webView(_:didFinish:)))) == false {
-            return
+        if delegate.responds(to: #selector(webView(_:didFinish:))) {
+            delegate.webView?(webView, didFinish: navigation)
         }
-        self.delegate?.webView?(webView, didFinish: navigation)
     }
     
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
         
         WKWebViewTrack.shared.endTrackWKWebView(webView, error: error)
         
-        if self.delegate == nil {
+        guard let delegate = self.delegate else {
             return
         }
-        if (self.delegate?.responds(to: #selector(webView(_:didFail:withError:)))) == false {
-            return
+        if delegate.responds(to: #selector(webView(_:didFail:withError:))) {
+            delegate.webView?(webView, didFail: navigation, withError: error)
         }
-        self.delegate?.webView?(webView, didFail: navigation, withError: error)
     }
 }
 
@@ -126,7 +124,9 @@ extension WKWebView {
     }()
     
     @objc open class func startAOP() {
-        guard self === WKWebView.self else { return }
+        guard self === WKWebView.self else {
+            return
+        }
         WKWebView.dispatchOnceTime
     }
     

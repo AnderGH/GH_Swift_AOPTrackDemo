@@ -32,7 +32,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         UITabBarController.startAOP()
         UIAlertController.startAOP()
         WKWebView.startAOP()
-        URLSession.startAOP()
+//        URLSession.startAOP()
         
         return true
     }

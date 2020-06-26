@@ -44,23 +44,23 @@ class GHUIApplicationDelegateProxy: NSObject, UIApplicationDelegate {
         if aSelector == #selector(application(_:didReceiveRemoteNotification:fetchCompletionHandler:)) {
             return true
         }
-        if self.delegate == nil {
+        guard let delegate = self.delegate else {
             return false
         }
-        if self.delegate?.responds(to: aSelector) == true {
+        if delegate.responds(to: aSelector) == true {
             return true
         }
         return false
     }
     
     override func forwardingTarget(for aSelector: Selector!) -> Any? {
-        if self.delegate == nil {
+        guard let delegate = self.delegate else {
             return super.forwardingTarget(for: aSelector)
         }
-        if self.delegate?.responds(to: aSelector) == false {
+        if delegate.responds(to: aSelector) == false {
             return super.forwardingTarget(for: aSelector)
         }
-        return self.delegate
+        return delegate
     }
     
     // MARK: UIApplicationDelegate
@@ -69,39 +69,37 @@ class GHUIApplicationDelegateProxy: NSObject, UIApplicationDelegate {
         
         UIApplicationTrack.shared.trackUIApplicationAction("UIApplicationDidFinishLaunchingWithOptions")
         
-        if self.delegate == nil {
+        guard let delegate = self.delegate else {
             return true
         }
-        if (self.delegate?.responds(to: #selector(application(_:didFinishLaunchingWithOptions:)))) == false {
-            return true
+        if delegate.responds(to: #selector(application(_:didFinishLaunchingWithOptions:))) {
+            return delegate.application?(application, didFinishLaunchingWithOptions: launchOptions) ?? true
         }
-        return self.delegate?.application?(application, didFinishLaunchingWithOptions: launchOptions) ?? true
+        return true
     }
     
     func applicationDidBecomeActive(_ application: UIApplication) {
         
         UIApplicationTrack.shared.trackUIApplicationAction("UIApplicationDidBecomeActive")
         
-        if self.delegate == nil {
+        guard let delegate = self.delegate else {
             return
         }
-        if (self.delegate?.responds(to: #selector(applicationDidBecomeActive(_:)))) == false {
-            return
+        if delegate.responds(to: #selector(applicationDidBecomeActive(_:))) {
+            delegate.applicationDidBecomeActive?(application)
         }
-        self.delegate?.applicationDidBecomeActive?(application)
     }
     
     func applicationWillResignActive(_ application: UIApplication) {
         
         UIApplicationTrack.shared.trackUIApplicationAction("UIApplicationWillResignActive")
         
-        if self.delegate == nil {
+        guard let delegate = self.delegate else {
             return
         }
-        if (self.delegate?.responds(to: #selector(applicationWillResignActive(_:)))) == false {
-            return
+        if delegate.responds(to: #selector(applicationWillResignActive(_:))) {
+            delegate.applicationWillResignActive?(application)
         }
-        self.delegate?.applicationWillResignActive?(application)
     }
     
     @available(iOS 9.0, *)
@@ -109,13 +107,13 @@ class GHUIApplicationDelegateProxy: NSObject, UIApplicationDelegate {
         
         UIApplicationTrack.shared.trackUIApplicationAction("OtherUrlOpenUIApplication:" + url.absoluteString)
         
-        if self.delegate == nil {
+        guard let delegate = self.delegate else {
             return true
         }
-        if (self.delegate?.responds(to: #selector(application(_:open:options:)))) == false {
-            return true
+        if delegate.responds(to: #selector(application(_:open:options:))) {
+            return delegate.application?(app, open: url, options: options) ?? true
         }
-        return self.delegate?.application?(app, open: url, options: options) ?? true
+        return true
     }
     
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
@@ -123,76 +121,70 @@ class GHUIApplicationDelegateProxy: NSObject, UIApplicationDelegate {
         let tokenStr: String = deviceToken.map{String(format:"%02.2hhx", arguments: [$0])}.joined()
         UIApplicationTrack.shared.trackUIApplicationAction("UIApplicationDeviceToken:" + tokenStr)
         
-        if self.delegate == nil {
+        guard let delegate = self.delegate else {
             return
         }
-        if (self.delegate?.responds(to: #selector(application(_:didRegisterForRemoteNotificationsWithDeviceToken:)))) == false {
-            return
+        if delegate.responds(to: #selector(application(_:didRegisterForRemoteNotificationsWithDeviceToken:))) {
+            delegate.application?(application, didRegisterForRemoteNotificationsWithDeviceToken: deviceToken)
         }
-        self.delegate?.application?(application, didRegisterForRemoteNotificationsWithDeviceToken: deviceToken)
     }
     
     func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
         
         UIApplicationTrack.shared.trackUIApplicationAction("UIApplicationDeviceTokenFail:" + error.localizedDescription)
         
-        if self.delegate == nil {
+        guard let delegate = self.delegate else {
             return
         }
-        if (self.delegate?.responds(to: #selector(application(_:didFailToRegisterForRemoteNotificationsWithError:)))) == false {
-            return
+        if delegate.responds(to: #selector(application(_:didFailToRegisterForRemoteNotificationsWithError:))) {
+            delegate.application?(application, didFailToRegisterForRemoteNotificationsWithError: error)
         }
-        self.delegate?.application?(application, didFailToRegisterForRemoteNotificationsWithError: error)
     }
     
     func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable : Any], fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
         
-        if self.delegate == nil {
+        guard let delegate = self.delegate else {
             return
         }
-        if (self.delegate?.responds(to: #selector(application(_:didReceiveRemoteNotification:fetchCompletionHandler:)))) == false {
-            return
+        if delegate.responds(to: #selector(application(_:didReceiveRemoteNotification:fetchCompletionHandler:))) {
+            delegate.application?(application, didReceiveRemoteNotification: userInfo, fetchCompletionHandler: completionHandler)
         }
-        self.delegate?.application?(application, didReceiveRemoteNotification: userInfo, fetchCompletionHandler: completionHandler)
     }
     
     func applicationWillTerminate(_ application: UIApplication) {
         
         UIApplicationTrack.shared.trackUIApplicationAction("UIApplicationWillTerminate")
         
-        if self.delegate == nil {
+        guard let delegate = self.delegate else {
             return
         }
-        if (self.delegate?.responds(to: #selector(applicationWillTerminate(_:)))) == false {
-            return
+        if delegate.responds(to: #selector(applicationWillTerminate(_:))) {
+            delegate.applicationWillTerminate?(application)
         }
-        self.delegate?.applicationWillTerminate?(application)
     }
     
     func applicationDidEnterBackground(_ application: UIApplication) {
         
         UIApplicationTrack.shared.trackUIApplicationAction("UIApplicationDidEnterBackground")
         
-        if self.delegate == nil {
+        guard let delegate = self.delegate else {
             return
         }
-        if (self.delegate?.responds(to: #selector(applicationDidEnterBackground(_:)))) == false {
-            return
+        if delegate.responds(to: #selector(applicationDidEnterBackground(_:))) {
+            delegate.applicationDidEnterBackground?(application)
         }
-        self.delegate?.applicationDidEnterBackground?(application)
     }
     
     func applicationWillEnterForeground(_ application: UIApplication) {
         
         UIApplicationTrack.shared.trackUIApplicationAction("UIApplicationWillEnterForeground")
         
-        if self.delegate == nil {
+        guard let delegate = self.delegate else {
             return
         }
-        if (self.delegate?.responds(to: #selector(applicationWillEnterForeground(_:)))) == false {
-            return
+        if delegate.responds(to: #selector(applicationWillEnterForeground(_:))) {
+            delegate.applicationWillEnterForeground?(application)
         }
-        self.delegate?.applicationWillEnterForeground?(application)
     }
 }
 
@@ -226,19 +218,19 @@ private func swizzle(_ application: UIApplication.Type) {
     for item in selectors {
         let originalSelector: Selector = item[0]
         let swizzledSelector: Selector = item[1]
-
-        let originalMethod: Method? = class_getInstanceMethod(application, originalSelector)
-        let swizzledMethod: Method? = class_getInstanceMethod(application, swizzledSelector)
-
-        if originalMethod == nil {
+        
+        guard let originalMethod: Method = class_getInstanceMethod(application, originalSelector) else {
+            continue
+        }
+        guard let swizzledMethod: Method = class_getInstanceMethod(application, swizzledSelector) else {
             continue
         }
 
-        let didAddMethod: Bool = class_addMethod(application, originalSelector, method_getImplementation(swizzledMethod!), method_getTypeEncoding(swizzledMethod!))
+        let didAddMethod: Bool = class_addMethod(application, originalSelector, method_getImplementation(swizzledMethod), method_getTypeEncoding(swizzledMethod))
         if didAddMethod {
-            class_replaceMethod(application, swizzledSelector, method_getImplementation(originalMethod!), method_getTypeEncoding(originalMethod!))
+            class_replaceMethod(application, swizzledSelector, method_getImplementation(originalMethod), method_getTypeEncoding(originalMethod))
         } else {
-            method_exchangeImplementations(originalMethod!, swizzledMethod!)
+            method_exchangeImplementations(originalMethod, swizzledMethod)
         }
     }
 }
@@ -261,7 +253,9 @@ extension UIApplication {
     }()
     
     @objc open class func startAOP() {
-        guard self === UIApplication.self else { return }
+        guard self === UIApplication.self else {
+            return
+        }
         UIApplication.dispatchOnceTime
     }
     

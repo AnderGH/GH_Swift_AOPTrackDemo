@@ -83,7 +83,7 @@ class TestTrackViewController: UIViewController {
         label.isUserInteractionEnabled = true
         label.translatesAutoresizingMaskIntoConstraints = false
         self.view.addSubview(label)
-        let tapGR: UITapGestureRecognizer = UITapGestureRecognizer.init(target: self, action: #selector(tapClick))
+        let tapGR: UITapGestureRecognizer = UITapGestureRecognizer.init(target: self, action: #selector(tapClick(sender:)))
         label.addGestureRecognizer(tapGR)
         
         label.centerXAnchor.constraint(equalTo: self.view.centerXAnchor).isActive = true
@@ -132,13 +132,16 @@ class TestTrackViewController: UIViewController {
     }
     
     @objc func sendAsyncRequest() -> Void {
-        
-        for _ in 1 ... 20 {
+                
+        for _ in 1 ... 5 {
             DispatchQueue.global().async {
+                print(Thread.current)
                 var request = URLRequest.init(url: URL.init(string: "http://192.168.0.163:8888")!)
                 request.timeoutInterval = 5
                 let task = URLSession.shared.dataTask(with: request) { (data, respons, error) in
-                    print(error as Any)
+                    print("=")
+                    print(Thread.current)
+//                    print(error as Any)
                 }
                 task.resume()
             }
@@ -177,7 +180,7 @@ class TestTrackViewController: UIViewController {
         task.resume()
     }
     
-    @objc func tapClick() -> Void {
+    @objc func tapClick(sender: UITapGestureRecognizer) -> Void {
         print("test tap gesture")
     }
 }

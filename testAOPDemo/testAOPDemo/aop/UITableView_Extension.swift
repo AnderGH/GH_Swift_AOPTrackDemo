@@ -14,43 +14,42 @@ class GHUITableViewDelegateProxy: NSObject, UITableViewDelegate {
     weak var delegate: UITableViewDelegate?
     
     override func responds(to aSelector: Selector!) -> Bool {
-        var hasSelector: Bool = false
-        if self.delegate == nil {
-            return hasSelector
+        guard let delegate = self.delegate else {
+            return false
         }
-        hasSelector = self.delegate?.responds(to: aSelector) ?? true
-        return hasSelector
+        return delegate.responds(to: aSelector)
     }
     
     override func forwardingTarget(for aSelector: Selector!) -> Any? {
-        if self.delegate == nil {
+        guard let delegate = self.delegate else {
             return super.forwardingTarget(for: aSelector)
         }
-        if self.delegate?.responds(to: aSelector) == false {
+        if delegate.responds(to: aSelector) == false {
             return super.forwardingTarget(for: aSelector)
         }
-        return self.delegate
+        return delegate
     }
     
     // MARK: UITableViewDelegate
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         
-        if self.delegate == nil {
+        guard let delegate = self.delegate else {
             return
         }
-        if (self.delegate?.responds(to: #selector(tableView(_:didSelectRowAt:)))) == false {
+        guard delegate.responds(to: #selector(tableView(_:didSelectRowAt:))) else {
             return
         }
         
+        // 埋点
         UITableViewTrack.shared.trackTableView(tableView, didSelectRowAt: indexPath)
-        
-        self.delegate?.tableView?(tableView, didSelectRowAt: indexPath)
+                
+        delegate.tableView?(tableView, didSelectRowAt: indexPath)
     }
 }
 
 private func swizzle(_ tableView: UITableView.Type) {
-    let selectors: Array<Array<Selector>> = [
+    let selectors: [[Selector]] = [
         [
             #selector(setter: tableView.delegate),
             #selector(tableView.gh_setDelegate(_:))
@@ -59,19 +58,19 @@ private func swizzle(_ tableView: UITableView.Type) {
     for item in selectors {
         let originalSelector: Selector = item[0]
         let swizzledSelector: Selector = item[1]
-
-        let originalMethod: Method? = class_getInstanceMethod(tableView, originalSelector)
-        let swizzledMethod: Method? = class_getInstanceMethod(tableView, swizzledSelector)
         
-        if originalMethod == nil {
+        guard let originalMethod: Method = class_getInstanceMethod(tableView, originalSelector) else {
+            continue
+        }
+        guard let swizzledMethod: Method = class_getInstanceMethod(tableView, swizzledSelector) else {
             continue
         }
         
-        let didAddMethod: Bool = class_addMethod(tableView, originalSelector, method_getImplementation(swizzledMethod!), method_getTypeEncoding(swizzledMethod!))
+        let didAddMethod: Bool = class_addMethod(tableView, originalSelector, method_getImplementation(swizzledMethod), method_getTypeEncoding(swizzledMethod))
         if didAddMethod {
-            class_replaceMethod(tableView, swizzledSelector, method_getImplementation(originalMethod!), method_getTypeEncoding(originalMethod!))
+            class_replaceMethod(tableView, swizzledSelector, method_getImplementation(originalMethod), method_getTypeEncoding(originalMethod))
         } else {
-            method_exchangeImplementations(originalMethod!, swizzledMethod!)
+            method_exchangeImplementations(originalMethod, swizzledMethod)
         }
     }
 }
@@ -94,7 +93,9 @@ extension UITableView {
     }()
     
     @objc open class func startAOP() {
-        guard self === UITableView.self else { return }
+        guard self === UITableView.self else {
+            return
+        }
         UITableView.dispatchOnceTime
     }
     

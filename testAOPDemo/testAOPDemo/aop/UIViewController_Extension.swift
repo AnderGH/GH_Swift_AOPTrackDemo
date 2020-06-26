@@ -9,7 +9,7 @@
 import UIKit
 
 private func swizzle(_ viewController: UIViewController.Type) {
-    let selectors: Array<Array<Selector>> = [
+    let selectors: [[Selector]] = [
         [
             #selector(viewController.viewDidLoad),
             #selector(viewController.gh_viewDidLoad)
@@ -28,14 +28,18 @@ private func swizzle(_ viewController: UIViewController.Type) {
         let originalSelector: Selector = item[0]
         let swizzledSelector: Selector = item[1]
         
-        let originalMethod = class_getInstanceMethod(viewController, originalSelector)
-        let swizzledMethod = class_getInstanceMethod(viewController, swizzledSelector)
+        guard let originalMethod: Method = class_getInstanceMethod(viewController, originalSelector) else {
+            continue
+        }
+        guard let swizzledMethod: Method = class_getInstanceMethod(viewController, swizzledSelector) else {
+            continue
+        }
         
-        let didAddMethod: Bool = class_addMethod(viewController, originalSelector, method_getImplementation(swizzledMethod!), method_getTypeEncoding(swizzledMethod!))
+        let didAddMethod: Bool = class_addMethod(viewController, originalSelector, method_getImplementation(swizzledMethod), method_getTypeEncoding(swizzledMethod))
         if didAddMethod {
-            class_replaceMethod(viewController, swizzledSelector, method_getImplementation(originalMethod!), method_getTypeEncoding(originalMethod!))
+            class_replaceMethod(viewController, swizzledSelector, method_getImplementation(originalMethod), method_getTypeEncoding(originalMethod))
         } else {
-            method_exchangeImplementations(originalMethod!, swizzledMethod!)
+            method_exchangeImplementations(originalMethod, swizzledMethod)
         }
     }
 }
@@ -49,7 +53,9 @@ extension UIViewController {
     }()
     
     @objc open class func startAOP() {
-        guard self === UIViewController.self else { return }
+        guard self === UIViewController.self else {
+            return
+        }
         UIViewController.dispatchOnceTime
     }
     

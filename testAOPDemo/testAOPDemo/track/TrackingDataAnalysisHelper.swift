@@ -12,57 +12,67 @@ import WebKit
 class TrackingDataAnalysisHelper: NSObject {
     
     class func analysisUIViewControllerTrackingData(ofController controller: UIViewController, pageDurationTime: String) {
-                
-        let objectClass: AnyClass? = object_getClass(controller)
-        if objectClass == nil {
+        
+        guard let objectClass: AnyClass = object_getClass(controller) else {
             return
         }
-        let controllerName: String = NSStringFromClass(objectClass!)
+        
+        let controllerName: String = NSStringFromClass(objectClass)
         
         var viewPath: String = ""
         viewPath += ("#time=" + pageDurationTime)
         viewPath += controller.viewPathIdentifier()
     }
     
-    class func analysisUIControlTrackingData(ofControl control: UIControl, action: Selector, target: Any?, event: UIEvent?) {
+    class func analysisUIControlTrackingData(ofControl control: UIControl, action: Selector, target: Any, event: UIEvent) {
+        
+        guard let objectClass: AnyClass = object_getClass(target) else {
+            return
+        }
         
         let actionName: String = NSStringFromSelector(action)
-        let targetClass: String = NSStringFromClass(object_getClass(target)!)
+        let targetClass: String = NSStringFromClass(objectClass)
         var viewPath: String = "#" + actionName + control.viewPathIdentifier()
         
-        if control.isKind(of: UIButton.self) {
-            let button: UIButton? = control as? UIButton
-            if button != nil {
-                viewPath += ("#currentTitle=" + (button!.currentTitle ?? ""))
-                viewPath += ("#state=" + String(button!.state.rawValue))
-                viewPath += ("#enabled=" + String(button!.isEnabled))
-                viewPath += ("#selected=" + String(button!.isSelected))
-            }
+        // 如果是按钮，加上额外参数
+        guard control.isKind(of: UIButton.self) == true else {
+            return
         }
+        guard let button: UIButton = control as? UIButton else {
+            return
+        }
+        viewPath += ("#currentTitle=" + (button.currentTitle ?? ""))
+        viewPath += ("#state=" + String(button.state.rawValue))
+        viewPath += ("#enabled=" + String(button.isEnabled))
+        viewPath += ("#selected=" + String(button.isSelected))
     }
     
     class func analysisUITapGestureRecognizerTrackingData(ofGesture gesture: UITapGestureRecognizer, action: Selector, target: UIResponder) {
         
         let actionName: String = action.description
         var viewPath: String = "#" + actionName
+        
         if gesture.view != nil {
-            viewPath += gesture.view!.viewPathIdentifier()
+            viewPath += (gesture.view?.viewPathIdentifier() ?? "")
         } else {
             viewPath += target.viewPathIdentifier()
         }
-        let targetClass: String = NSStringFromClass(object_getClass(target)!)
+        
+        guard let objectClass: AnyClass = object_getClass(target) else {
+            return
+        }
+        let targetClass: String = NSStringFromClass(objectClass)
     }
     
     class func analysisUITableViewTrackingData(ofTableView tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         
-        let controller = TrackUtils.getController(of: tableView)
-        if controller == nil {
+        guard let controller = TrackUtils.getController(of: tableView) else {
             return
         }
-        if object_getClass(controller) == nil {
+        guard let objectClass = object_getClass(controller) else {
             return
         }
-        let targetClass: String = NSStringFromClass(object_getClass(controller)!)
+        let targetClass: String = NSStringFromClass(objectClass)
         let actionName: String = "tableView:didSelectRowAt:"
         var viewPath: String = "#" + actionName
         viewPath += tableView.viewPathIdentifier()
@@ -73,14 +83,13 @@ class TrackingDataAnalysisHelper: NSObject {
     
     class func analysisUICollectionViewTrackingData(ofCollectionView collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         
-        let controller = TrackUtils.getController(of: collectionView)
-        if controller == nil {
+        guard let controller = TrackUtils.getController(of: collectionView) else {
             return
         }
-        if object_getClass(controller) == nil {
+        guard let objectClass = object_getClass(controller) else {
             return
         }
-        let targetClass: String = NSStringFromClass(object_getClass(controller)!)
+        let targetClass: String = NSStringFromClass(objectClass)
         let actionName: String = "collectionView:didSelectItemAt:"
         var viewPath: String = "#" + actionName
         viewPath += collectionView.viewPathIdentifier()
@@ -91,21 +100,19 @@ class TrackingDataAnalysisHelper: NSObject {
     
     class func analysisUITabBarTrackingData(ofTabBar tabBar: UITabBar, didSelect item: UITabBarItem) {
         
-        let controller = TrackUtils.getController(of: tabBar)
-        if controller == nil {
+        guard let controller = TrackUtils.getController(of: tabBar) else {
             return
         }
-        if object_getClass(controller) == nil {
+        guard let objectClass = object_getClass(controller) else {
             return
         }
-        let targetClass: String = NSStringFromClass(object_getClass(controller)!)
+        let targetClass: String = NSStringFromClass(objectClass)
         let actionName: String = "tabBar:didSelect:"
         var viewPath: String = "#" + actionName
         viewPath += tabBar.viewPathIdentifier()
-        let index: Int? = tabBar.items?.firstIndex(of: item)
         var actionIndex: String = ""
-        if index != nil {
-            actionIndex = String(index!)
+        if let index: Int = tabBar.items?.firstIndex(of: item) {
+            actionIndex = String(index)
         }
         viewPath += ("#selectedIndex=" + actionIndex)
         
@@ -113,10 +120,10 @@ class TrackingDataAnalysisHelper: NSObject {
     
     class func analysisUITabBarControllerTrackingData(ofTabBarController tabBarController: UITabBarController, didSelect viewController: UIViewController) {
         
-        if object_getClass(tabBarController) == nil {
+        guard let objectClass = object_getClass(tabBarController) else {
             return
         }
-        let targetClass: String = NSStringFromClass(object_getClass(tabBarController)!)
+        let targetClass: String = NSStringFromClass(objectClass)
         let actionName: String = "tabBarController:didSelect:"
         var viewPath: String = "#" + actionName
         viewPath += tabBarController.viewPathIdentifier()
@@ -126,37 +133,37 @@ class TrackingDataAnalysisHelper: NSObject {
     
     class func analysisUIAlertControllerTrackingData(withAlertControllerTitle title: String, andAlertControllerMessage message: String, callAlertAction alertAction: UIAlertAction) {
         
-        // get last controller
-        let window: UIWindow? = UIApplication.shared.delegate?.window ?? nil
-        var currentVC: UIViewController? = window?.rootViewController
-        if currentVC == nil {
+        // 获取弹出UIAlertController的控制器
+        let window = UIApplication.shared.delegate?.window
+        if window == nil {
             return
         }
-        while currentVC != nil {
+        guard var currentVC = window??.rootViewController else {
+            return
+        }
+        while true {
             var nextVC: UIViewController?
-            if currentVC?.isKind(of: UINavigationController.self) == true {
-                nextVC = (currentVC as! UINavigationController).visibleViewController
-            } else if (currentVC?.isKind(of: UITabBarController.self)) == true {
-                nextVC = (currentVC as! UITabBarController).selectedViewController
-            } else if (currentVC?.isKind(of: UIAlertController.self)) == true {
+            if currentVC.isKind(of: UINavigationController.self) {
+                nextVC = (currentVC as? UINavigationController)?.visibleViewController
+            } else if currentVC.isKind(of: UITabBarController.self) {
+                nextVC = (currentVC as? UITabBarController)?.selectedViewController
+            } else if currentVC.isKind(of: UIAlertController.self) {
                 return
             } else {
-                nextVC = currentVC?.presentedViewController
+                nextVC = currentVC.presentedViewController
             }
-            if nextVC != nil {
-                currentVC = nextVC
-            } else {
+            guard let next = nextVC else {
                 break
             }
+            currentVC = next
         }
         
-        if object_getClass(currentVC) == nil {
+        guard let objectClass = object_getClass(currentVC) else {
             return
         }
-        let targetClass: String = NSStringFromClass(object_getClass(currentVC)!)
-        
+        let targetClass: String = NSStringFromClass(objectClass)
         var viewPath: String = "#UIAlertController"
-        viewPath += currentVC!.viewPathIdentifier()
+        viewPath += currentVC.viewPathIdentifier()
         viewPath += ("#UIAlertControllerTitle=" + title)
         viewPath += ("#UIAlertControllerMessage=" + message)
         viewPath += "#UIAlertAction"
